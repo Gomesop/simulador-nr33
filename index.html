@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NR 33 - Simulador de Entrada Segura</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Estilos customizados -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="industrial-theme">
+  <!-- CONTAINER PRINCIPAL DO JOGO -->
+  <div class="game-container">
+    
+    <!-- CABEÇALHO DO STATUS DO JOGO -->
+    <header class="game-header">
+      <div class="header-logo">
+        <svg class="hds-logo" viewBox="0 0 512 512" width="44" height="44" xmlns="http://www.w3.org/2000/svg" aria-label="Hora da Segurança">
+          <defs>
+            <linearGradient id="hdsFundo" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#1c4f8f"/><stop offset="1" stop-color="#0d2a56"/>
+            </linearGradient>
+            <linearGradient id="hdsOuro" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffd54a"/><stop offset="1" stop-color="#f5a614"/>
+            </linearGradient>
+            <linearGradient id="hdsFaceta" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#2f9fe0"/><stop offset="1" stop-color="#0f5f9e"/>
+            </linearGradient>
+            <linearGradient id="hdsCheck" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f2e9d8"/>
+            </linearGradient>
+          </defs>
+          <rect x="16" y="16" width="480" height="480" rx="110" fill="url(#hdsFundo)"/>
+          <path d="M256 62 L438 118 V268 C438 372 352 434 256 462 C160 434 74 372 74 268 V118 Z" fill="#fff"/>
+          <path d="M256 78 L422 130 V266 C422 362 342 420 256 446 C170 420 90 362 90 266 V130 Z" fill="#0d2a56"/>
+          <path d="M256 96 L406 143 V264 C406 350 334 403 256 428 C178 403 106 350 106 264 V143 Z" fill="url(#hdsOuro)"/>
+          <path d="M256 122 L382 162 V262 C382 334 322 379 256 401 C190 379 130 334 130 262 V162 Z" fill="#12325e"/>
+          <path d="M256 122 L382 162 V262 C382 334 322 379 256 401 Z" fill="url(#hdsFaceta)" opacity=".9"/>
+          <path d="M305 322 L262 352 L282 300 Z" fill="#19c37d"/>
+          <path d="M172 235 L232 300 L372 172 L385 208 L238 356 L148 268 Z" fill="url(#hdsCheck)" stroke="#0d2a56" stroke-width="8" stroke-linejoin="round"/>
+        </svg>
+        <div class="logo-text">
+          <h1>Simulador <span class="highlight">NR 33</span></h1>
+          <p>Hora da Segurança · Espaço Confinado</p>
+        </div>
+      </div>
+      
+      <!-- INDICADOR DE PROGRESSO DAS FASES -->
+      <div class="stage-indicator">
+        <div class="stage-step active" id="step-1" title="Inspeção de Riscos">1</div>
+        <div class="stage-line"></div>
+        <div class="stage-step" id="step-2" title="Equipamentos">2</div>
+        <div class="stage-line"></div>
+        <div class="stage-step" id="step-3" title="Medição de Gases">3</div>
+        <div class="stage-line"></div>
+        <div class="stage-step" id="step-4" title="Emissão de PET">4</div>
+        <div class="stage-line"></div>
+        <div class="stage-step" id="step-5" title="Vigilância Ativa">5</div>
+      </div>
+
+      <!-- PAINEL DE PERFORMANCE -->
+      <div class="performance-panel">
+        <div class="score-container">
+          <span class="score-label">Pontos</span>
+          <span class="score-val" id="score-display">0</span>
+        </div>
+        <div class="safety-score-wrapper">
+          <div class="safety-label-group">
+            <span>Score de Segurança</span>
+            <span id="safety-percent">100%</span>
+          </div>
+          <div class="safety-bar">
+            <div class="safety-fill" id="safety-bar-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ÁREA DE VIEWPORT DO JOGO -->
+    <main class="game-viewport">
+
+      <!-- TELA 0: INTRODUÇÃO E TELA INICIAL -->
+      <section id="screen-intro" class="viewport-screen active">
+        <div class="intro-card">
+          <div class="badge-nr">NORMA REGULAMENTADORA 33</div>
+          <h2>Você está preparado para liberar um Espaço Confinado?</h2>
+          <p class="intro-desc">
+            Trabalhar em espaços confinados é uma das atividades mais perigosas da indústria. Falhas nos procedimentos da <strong>NR 33</strong> causam acidentes graves e fatais.
+          </p>
+          <div class="roles-grid">
+            <div class="role-card">
+              <i data-lucide="user-check"></i>
+              <h4>Supervisor de Entrada</h4>
+              <p>Identifica os riscos, preenche e emite a Permissão de Entrada e Trabalho (PET).</p>
+            </div>
+            <div class="role-card">
+              <i data-lucide="eye"></i>
+              <h4>Vigia (Guarda)</h4>
+              <p>Permanece fora do espaço confinado, monitorando e acionando o plano de resgate.</p>
+            </div>
+            <div class="role-card">
+              <i data-lucide="hard-hat"></i>
+              <h4>Trabalhador Autorizado</h4>
+              <p>Entra no espaço confinado para realizar a tarefa de manutenção planejada.</p>
+            </div>
+          </div>
+          <div class="intro-instructions">
+            <h3><i data-lucide="gamepad-2"></i> Como Jogar:</h3>
+            <ul>
+              <li><strong>Fase 1</strong>: Inspecione o cenário industrial e encontre 4 inconformidades graves.</li>
+              <li><strong>Fase 2</strong>: Escolha os equipamentos de segurança e calibre o detector multigás.</li>
+              <li><strong>Fase 3</strong>: Realize testes atmosféricos nas 3 alturas do tanque e faça a ventilação.</li>
+              <li><strong>Fase 4</strong>: Preencha e assine a Permissão de Entrada e Trabalho (PET).</li>
+              <li><strong>Fase 5</strong>: Monitore a entrada do trabalhador como Vigia e tome decisões sob pressão.</li>
+            </ul>
+          </div>
+          <div class="hds-banner">
+            <div class="hds-banner-head">
+              <span class="hds-badge">🛡️ UMA EXPERIÊNCIA HORA DA SEGURANÇA</span>
+              <span class="hds-portal">www.horadaseguranca.com</span>
+            </div>
+            <p><strong>O site mais completo de gestão em Saúde, Segurança e Meio Ambiente.</strong> Conteúdos, ferramentas e treinamentos para elevar a cultura de segurança da sua empresa.</p>
+            <a class="hds-link" href="https://www.horadaseguranca.com" target="_blank" rel="noopener">🌐 Conheça: www.horadaseguranca.com</a>
+          </div>
+          <button class="btn btn-start" id="btn-start-game">
+            Iniciar Treinamento <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- TELA 1: FASE 1 - INSPEÇÃO DE RISCOS -->
+      <section id="screen-phase1" class="viewport-screen">
+        <div class="screen-layout-split">
+          <!-- Ilustração do cenário com riscos clicáveis -->
+          <div class="visual-panel phase1-visual">
+            <div class="panel-header-title">Cenário: Tanque de Armazenamento Químico</div>
+            
+            <div class="inspection-hud">
+              <span class="inspection-counter"><i data-lucide="search"></i> Riscos encontrados: <strong id="phase1-counter">0 / 4</strong></span>
+              <button class="btn-hint" id="btn-hint-phase1"><i data-lucide="lightbulb"></i> Usar Dica (-25 pts)</button>
+            </div>
+            <div class="interactive-scene inspection-mode" id="phase1-scene">
+              <!-- Desenho do Tanque (SVG/CSS) e objetos inspecionáveis -->
+              <div class="tank-diagram">
+                <div class="tank-body">
+                  <div class="tank-dome"></div>
+                  <div class="tank-interior">
+                    <!-- RISCO: Poça de resíduo químico (clicável) -->
+                    <div class="liquid-waste-hazard scene-object" data-hazard="waste" title="Inspecionar fundo do tanque">
+                      <span class="bubbles">༚༚</span>
+                    </div>
+                    <div class="ladder-inside"></div>
+                  </div>
+                  <div class="manhole-entry"></div>
+                </div>
+
+                <!-- RISCO: Tubulação conectada com válvula ABERTA (sem raquete) -->
+                <div class="scene-object pipe-hazard" data-hazard="valve" style="top: 24%; left: -2%;" title="Inspecionar tubulação">
+                  <div class="pipe-line"></div>
+                  <div class="valve-wheel"><i data-lucide="settings"></i></div>
+                  <span class="flow-drip">💧</span>
+                </div>
+
+                <!-- RISCO: Suporte de placa VAZIO na entrada -->
+                <div class="scene-object sign-hazard" data-hazard="sign" style="top: 56%; left: 76%;" title="Inspecionar sinalização">
+                  <div class="sign-plate-empty">?</div>
+                  <div class="sign-post"></div>
+                </div>
+
+                <!-- RISCO: Painel elétrico com cabos expostos -->
+                <div class="scene-object cable-hazard" data-hazard="cable" style="top: 74%; left: 4%;" title="Inspecionar instalação elétrica">
+                  <div class="elec-panel"><i data-lucide="zap"></i></div>
+                  <div class="cable-tangle"></div>
+                </div>
+
+                <!-- ITEM CONFORME (isca): Extintor posicionado -->
+                <div class="scene-object safe-object" data-safe="extintor" style="top: 70%; left: 88%;" title="Inspecionar extintor">
+                  <div class="safe-icon-box"><i data-lucide="fire-extinguisher"></i></div>
+                </div>
+
+                <!-- ITEM CONFORME (isca): Cone de sinalização -->
+                <div class="scene-object safe-object" data-safe="cone" style="top: 88%; left: 74%;" title="Inspecionar cone">
+                  <div class="cone-shape"></div>
+                </div>
+
+                <!-- ITEM CONFORME (isca): Tripé de resgate montado -->
+                <div class="scene-object safe-object" data-safe="tripe" style="top: 12%; left: 80%;" title="Inspecionar tripé">
+                  <div class="safe-icon-box"><i data-lucide="anchor"></i></div>
+                </div>
+              </div>
+              <div class="inspection-tip">🔎 Inspecione a cena: clique nos itens que violam a NR 33. Cuidado — nem tudo está irregular!</div>
+            </div>
+          </div>
+          
+          <!-- Painel de checklist lateral -->
+          <div class="control-panel">
+            <div class="phase-info">
+              <span class="phase-num">Fase 1 de 5</span>
+              <h3>Análise de Riscos no Local</h3>
+              <p>Inspecione a imagem e clique nos pontos críticos de perigo para identificar as violações às normas antes de liberar a entrada.</p>
+            </div>
+            
+            <div class="hazards-list">
+              <div class="hazard-item" id="item-valve">
+                <i data-lucide="circle" class="item-icon"></i>
+                <div class="hazard-item-text">
+                  <h5>Bloqueio Físico de Tubulações</h5>
+                  <p>As linhas de alimentação do tanque devem ser desconectadas ou bloqueadas (raqueteamento) para evitar entrada acidental de químicos.</p>
+                </div>
+              </div>
+              <div class="hazard-item" id="item-sign">
+                <i data-lucide="circle" class="item-icon"></i>
+                <div class="hazard-item-text">
+                  <h5>Sinalização de Espaço Confinado</h5>
+                  <p>A entrada deve conter uma placa de advertência legível permanente: "Espaço Confinado - Entrada Proibida sem Autorização".</p>
+                </div>
+              </div>
+              <div class="hazard-item" id="item-cable">
+                <i data-lucide="circle" class="item-icon"></i>
+                <div class="hazard-item-text">
+                  <h5>Isolamento de Energia Elétrica</h5>
+                  <p>Fiação desordenada e painel exposto. É obrigatório desligar e etiquetar (LOTO) as fontes de energia elétrica perto da entrada.</p>
+                </div>
+              </div>
+              <div class="hazard-item" id="item-waste">
+                <i data-lucide="circle" class="item-icon"></i>
+                <div class="hazard-item-text">
+                  <h5>Limpeza e Purgagem</h5>
+                  <p>Resíduos químicos no fundo geram vapores tóxicos e inflamáveis. É preciso purgar e drenar o tanque antes de qualquer entrada.</p>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-next disabled" id="btn-next-phase1">
+              Ir para Fase 2: Equipamentos <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA 2: FASE 2 - EQUIPAMENTOS E CALIBRAÇÃO -->
+      <section id="screen-phase2" class="viewport-screen">
+        <div class="screen-layout-split">
+          <!-- Seleção do Inventário de Segurança -->
+          <div class="visual-panel">
+            <div class="panel-header-title">Selecione os Equipamentos Corretos (Escolha 6 itens obrigatórios)</div>
+            
+            <div class="equipment-grid" id="equipment-selection-grid">
+              <!-- Item 1: Detector Multigás (Obrigatório) -->
+              <div class="equip-card" data-equip="detector" data-required="true">
+                <div class="equip-icon"><i data-lucide="radio"></i></div>
+                <h5>Detector Multigás</h5>
+                <span class="equip-status">Selecionar</span>
+              </div>
+              <!-- Item 2: Tripé com guincho mecânico (Obrigatório) -->
+              <div class="equip-card" data-equip="tripod" data-required="true">
+                <div class="equip-icon"><i data-lucide="anchor"></i></div>
+                <h5>Tripé de Resgate e Guincho</h5>
+                <span class="equip-status">Selecionar</span>
+              </div>
+              <!-- Item 3: Soprador/Insuflador de ar (Obrigatório) -->
+              <div class="equip-card" data-equip="ventilator" data-required="true">
+                <div class="equip-icon"><i data-lucide="wind"></i></div>
+                <h5>Soprador / Ventilador</h5>
+                <span class="equip-status">Selecionar</span>
+              </div>
+              <!-- Item 4: Máscara cirúrgica simples (Incorreto) -->
+              <div class="equip-card" data-equip="simplemask" data-required="false" data-penalty="true">
+                <div class="equip-icon"><i data-lucide="smile"></i></div>
+                <h5>Máscara Descartável Poeira</h5>
+                <span class="equip-status">Selecionar</span>
+              </div>
+              <!-- Item 5: Cinto de segurança tipo paraquedista com linha de vida (Obrigatório) -->
+              <div class="equip-card" data-equip="harness" data-required="true">
+                <div class="equip-icon"><i data-lucide="pocket"></i></div>
+                <h5>Cinto Paraquedista e Corda</h5>
+                <span class="equip-status">Selecionar</span>
+              </div>
+              <!-- Item 6: Lanterna comum de plástico (Incorreto - não intrínseca) -->
+              <div class="equip-card" data-equip="flashlight" data-required="false" data-penalty="true">
+                <div class="equip-icon"><i data-lucide="flashlight"></i></div>
+                <h5>Lanterna Comum de Mão</h5>
+                <span class="equip-status">Selecionar</span>
+              </div>
+              <!-- Item 7: Rádio de comunicação instrinsecamente seguro (Obrigatório) -->
+              <div class="equip-card" data-equip="radio" data-required="true">
+                <div class="equip-icon"><i data-lucide="phone-call"></i></div>
+                <h5>Rádio de Comunicação EX</h5>
+                <span class="equip-status">Selecionar</span>
+              </div>
+              <!-- Item 8: Equipamento Autônomo de Respiração (Obrigatório) -->
+              <div class="equip-card" data-equip="scba" data-required="true">
+                <div class="equip-icon"><i data-lucide="activity"></i></div>
+                <h5>Respirador Autônomo (SCBA)</h5>
+                <span class="equip-status">Selecionar</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Lógica de Calibração do Detector Multigás -->
+          <div class="control-panel">
+            <div class="phase-info">
+              <span class="phase-num">Fase 2 de 5</span>
+              <h3>Inventário & Calibração</h3>
+              <p>1. Selecione os 6 itens obrigatórios recomendados pela NR 33. Evite equipamentos inadequados que geram faíscas ou não protegem contra vapores.</p>
+            </div>
+            
+            <!-- Simulador de calibração do detector -->
+            <div class="calibration-box locked" id="calibration-box">
+              <div class="calibration-overlay" id="calibration-lock-text">
+                <i data-lucide="lock"></i> Selecione o Detector Multigás no inventário para calibrar.
+              </div>
+              
+              <h5>Calibração do Detector Multigás</h5>
+              <div class="detector-interface">
+                <div class="detector-screen">
+                  <div class="detector-screen-title" id="detector-msg">OFF</div>
+                  <div class="gas-readings-grid">
+                    <div class="gas-cell">
+                      <span class="gas-name">O2 %</span>
+                      <span class="gas-val" id="det-o2">--.-</span>
+                    </div>
+                    <div class="gas-cell">
+                      <span class="gas-name">LEL %</span>
+                      <span class="gas-val" id="det-lel">---</span>
+                    </div>
+                    <div class="gas-cell">
+                      <span class="gas-name">CO ppm</span>
+                      <span class="gas-val" id="det-co">---</span>
+                    </div>
+                    <div class="gas-cell">
+                      <span class="gas-name">H2S ppm</span>
+                      <span class="gas-val" id="det-h2s">---</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="detector-buttons">
+                  <button class="btn btn-detector" id="btn-det-power" title="Ligar/Desligar"><i data-lucide="power"></i> Power</button>
+                  <button class="btn btn-detector disabled" id="btn-det-cal" title="Auto Calibração (Ar Limpo)"><i data-lucide="sliders"></i> Cal. Ar Limpo</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-next disabled" id="btn-next-phase2">
+              Ir para Fase 3: Medição de Gases <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA 3: FASE 3 - MEDIÇÃO ATMOSFÉRICA -->
+      <section id="screen-phase3" class="viewport-screen">
+        <div class="screen-layout-split">
+          <!-- Coluna visual do tanque e movimentação da sonda -->
+          <div class="visual-panel phase3-visual">
+            <div class="panel-header-title">Teste Atmosférico: Desça a Sonda no Tanque</div>
+            
+            <div class="probe-instruction" id="probe-instruction">
+              <i data-lucide="mouse-pointer-click"></i> <strong>Arraste a sonda</strong> (ou clique em uma camada) e <strong>segure-a parada</strong> na altura desejada para coletar a amostra.
+            </div>
+            <div class="interactive-testing-scene">
+              <!-- Vista interna do Tanque -->
+              <div class="tank-cutaway" id="tank-cutaway" style="flex-grow: 1;">
+                <div class="tank-layer top-layer" id="layer-top" data-level="top">
+                  <span class="layer-label">Topo (Gases Leves · Metano)</span>
+                  <span class="layer-status" id="status-top">Pendente</span>
+                </div>
+                <div class="tank-layer mid-layer" id="layer-mid" data-level="mid">
+                  <span class="layer-label">Meio (Gases Médios · CO)</span>
+                  <span class="layer-status" id="status-mid">Pendente</span>
+                </div>
+                <div class="tank-layer bottom-layer" id="layer-bottom" data-level="bottom">
+                  <span class="layer-label">Fundo (Gases Pesados · H₂S)</span>
+                  <span class="layer-status" id="status-bottom">Pendente</span>
+                </div>
+
+                <!-- Sonda móvel e Cabo de medição -->
+                <div class="probe-cable" id="probe-cable" style="height: 30px;"></div>
+                <div class="probe-head" id="probe-head" style="top: 30px;">
+                  <div class="probe-grip" id="probe-grip">
+                    <i data-lucide="disc" class="probe-icon"></i>
+                    <span class="probe-label">⇕ Sonda</span>
+                  </div>
+                  <div class="sampling-ring" id="sampling-ring"><div class="sampling-fill" id="sampling-fill"></div></div>
+                </div>
+
+                <!-- Medidor de profundidade -->
+                <div class="depth-gauge" id="depth-gauge">Prof.: <strong id="depth-value">0,0 m</strong></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Resultados do detector e controles de ventilação -->
+          <div class="control-panel">
+            <div class="phase-info">
+              <span class="phase-num">Fase 3 de 5</span>
+              <h3>Medições Físicas & Ventilação</h3>
+              <p>Mova a sonda para as três profundidades do espaço confinado para coletar as leituras. Os gases se acumulam em níveis diferentes devido ao peso molecular.</p>
+            </div>
+            
+            <!-- Visor do detector de gases em tempo real -->
+            <div class="detector-readout-panel">
+              <div class="detector-panel-header">Leitura da Sonda Ativa</div>
+              <div class="live-readings-grid">
+                <div class="live-cell" id="live-cell-o2">
+                  <div class="live-label">O₂ (Oxigênio)</div>
+                  <div class="live-value" id="live-o2">20.9%</div>
+                  <div class="live-limit">Limites: 19.5% a 23.0%</div>
+                </div>
+                <div class="live-cell" id="live-cell-lel">
+                  <div class="live-label">LEL (Gases Inflamáveis)</div>
+                  <div class="live-value" id="live-lel">0%</div>
+                  <div class="live-limit">Limite: Max 10% LEL</div>
+                </div>
+                <div class="live-cell" id="live-cell-co">
+                  <div class="live-label">CO (Monóxido de Carbono)</div>
+                  <div class="live-value" id="live-co">0 ppm</div>
+                  <div class="live-limit">Limite: Max 39 ppm</div>
+                </div>
+                <div class="live-cell" id="live-cell-h2s">
+                  <div class="live-label">H₂S (Gás Sulfídrico)</div>
+                  <div class="live-value" id="live-h2s">0 ppm</div>
+                  <div class="live-limit">Limite: Max 8 ppm</div>
+                </div>
+              </div>
+              <div class="detector-alert-strip safe" id="gas-alert-strip">ATMOSFERA SEGURA</div>
+            </div>
+
+            <!-- Sistema de Ventilação Forçada -->
+            <div class="ventilation-control-box">
+              <div class="ventilation-status">
+                <i data-lucide="fan" id="fan-icon" class="fan-icon-class"></i>
+                <div>
+                  <h5>Ventilação Forçada Mecânica</h5>
+                  <p id="ventilation-text">Desligado - Risco de asfixia e explosão elevado.</p>
+                </div>
+              </div>
+              <button class="btn btn-secondary" id="btn-toggle-fan">Ligar Exaustor / Insuflador</button>
+            </div>
+
+            <!-- Checklist de Medição -->
+            <div class="measuring-checklist">
+              <div class="check-item" id="check-measure-top"><i data-lucide="circle"></i> Teste no Topo</div>
+              <div class="check-item" id="check-measure-mid"><i data-lucide="circle"></i> Teste no Meio</div>
+              <div class="check-item" id="check-measure-bottom"><i data-lucide="circle"></i> Teste no Fundo</div>
+            </div>
+
+            <button class="btn btn-next disabled" id="btn-next-phase3">
+              Ir para Fase 4: Emissão da PET <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA 4: FASE 4 - EMISSÃO DA PET -->
+      <section id="screen-phase4" class="viewport-screen">
+        <div class="screen-layout-split">
+          <!-- Documento PET interativo -->
+          <div class="visual-panel pet-document-panel">
+            <div class="panel-header-title">Permissão de Entrada e Trabalho - PET (NR 33)</div>
+            
+            <div class="pet-document">
+              <div class="pet-header">
+                <h4>PERMISSÃO DE ENTRADA E TRABALHO - PET</h4>
+                <span>Nº 2026-0049</span>
+              </div>
+              
+              <div class="pet-section">
+                <h5>1. Identificação do Espaço Confinado</h5>
+                <div class="pet-row">
+                  <div><strong>Local:</strong> Setor de Reatores - Tanque Químico T-04</div>
+                  <div><strong>Trabalho:</strong> Inspeção e Reparo de Solda Interna</div>
+                </div>
+              </div>
+
+              <div class="pet-section">
+                <h5>2. Monitoramento de Gases Prévio (Registrado)</h5>
+                <table class="pet-table">
+                  <thead>
+                    <tr>
+                      <th>Gas</th>
+                      <th>Leitura Registrada</th>
+                      <th>Status de Aprovação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Oxigênio (O₂)</td>
+                      <td id="pet-gas-o2">--.- %</td>
+                      <td id="pet-status-o2">Pendente</td>
+                    </tr>
+                    <tr>
+                      <td>Gases Inflamáveis (LEL)</td>
+                      <td id="pet-gas-lel">--- %</td>
+                      <td id="pet-status-lel">Pendente</td>
+                    </tr>
+                    <tr>
+                      <td>Monóxido de Carbono (CO)</td>
+                      <td id="pet-gas-co">--- ppm</td>
+                      <td id="pet-status-co">Pendente</td>
+                    </tr>
+                    <tr>
+                      <td>Gás Sulfídrico (H₂S)</td>
+                      <td id="pet-gas-h2s">--- ppm</td>
+                      <td id="pet-status-h2s">Pendente</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="pet-section">
+                <h5>3. Checklist de Medidas de Controle Obrigatórias</h5>
+                <div class="pet-checklist-grid">
+                  <label class="pet-check-label">
+                    <input type="checkbox" id="pet-check-loto" class="pet-checkbox"> Isolamento e Bloqueio Elétrico/Mecânico (Lockout/Tagout) concluído.
+                  </label>
+                  <label class="pet-check-label">
+                    <input type="checkbox" id="pet-check-vent" class="pet-checkbox"> Ventilação forçada contínua ativada e dimensionada.
+                  </label>
+                  <label class="pet-check-label">
+                    <input type="checkbox" id="pet-check-ppe" class="pet-checkbox"> Todos os trabalhadores equipados com cintos e detector de gás ativo.
+                  </label>
+                  <label class="pet-check-label">
+                    <input type="checkbox" id="pet-check-rescue" class="pet-checkbox"> Equipamentos de salvamento e resgate montados na entrada.
+                  </label>
+                  <label class="pet-check-label">
+                    <input type="checkbox" id="pet-check-vigia" class="pet-checkbox"> Vigia capacitado posicionado no local da entrada de forma fixa.
+                  </label>
+                </div>
+              </div>
+
+              <div class="pet-section">
+                <h5>4. Assinaturas Autorizadas</h5>
+                <div class="pet-signatures-grid">
+                  <div class="signature-slot" id="sig-supervisor" data-role="supervisor">
+                    <span class="slot-label">Assinatura do Supervisor</span>
+                    <div class="slot-dropzone" id="drop-supervisor">Solte o carimbo/assinatura aqui</div>
+                  </div>
+                  <div class="signature-slot" id="sig-vigia" data-role="vigia">
+                    <span class="slot-label">Assinatura do Vigia</span>
+                    <div class="slot-dropzone" id="drop-vigia">Solte o carimbo/assinatura aqui</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Elementos de Arrastar (Carimbos de Assinatura) -->
+          <div class="control-panel">
+            <div class="phase-info">
+              <span class="phase-num">Fase 4 de 5</span>
+              <h3>Preenchimento da PET</h3>
+              <p>Marque os itens obrigatórios e aplique as assinaturas digitais autorizadas nos espaços corretos. A PET é o documento legal que garante a entrada segura.</p>
+            </div>
+            
+            <div class="signatures-drags">
+              <h5>Carimbos de Autorização</h5>
+              <div class="drag-items-container">
+                <div class="drag-signature" id="drag-stamp-supervisor" draggable="true" data-role="supervisor">
+                  <i data-lucide="pen-tool"></i>
+                  <span>Assinar: Supervisor de Entrada</span>
+                </div>
+                <div class="drag-signature" id="drag-stamp-vigia" draggable="true" data-role="vigia">
+                  <i data-lucide="user-check"></i>
+                  <span>Assinar: Vigia Autorizado</span>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-next disabled" id="btn-next-phase4">
+              Liberar Entrada (Iniciar Trabalho) <i data-lucide="play-circle"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA 5: FASE 5 - VIGILÂNCIA ATIVA (O VIGIA EM AÇÃO) -->
+      <section id="screen-phase5" class="viewport-screen">
+        <div class="screen-layout-split">
+          <!-- Visão do painel de monitoramento do Vigia -->
+          <div class="visual-panel vigilance-panel">
+            <div class="panel-header-title">Console de Monitoramento do Vigia (Não perca a atenção!)</div>
+            
+            <div class="monitoring-dashboard">
+              <!-- Vista simplificada da entrada do tanque -->
+              <div class="manhole-monitoring-scene">
+                <div class="manhole-entry-rim">
+                  <!-- Trabalhador lá dentro ilustrado de forma simples -->
+                  <div class="worker-avatar-confinement" id="worker-avatar">
+                    <i data-lucide="hard-hat" class="worker-hat-icon"></i>
+                    <span id="worker-status-tag">Trabalhando...</span>
+                  </div>
+                </div>
+                <!-- Indicador de Tripé de Resgate Ativo -->
+                <div class="rescue-tripod-vector">
+                  <i data-lucide="anchor" class="winch-icon"></i> Cabos Conectados ao Trabalhador
+                </div>
+              </div>
+
+              <!-- Painel de Sinais Vitais e Telemetria -->
+              <div class="telemetry-grid">
+                <div class="telemetry-item">
+                  <div class="tel-label">Frequência Cardíaca</div>
+                  <div class="tel-value" id="tel-heartrate">82 bpm</div>
+                </div>
+                <div class="telemetry-item">
+                  <div class="tel-label">Oxigênio no Detector</div>
+                  <div class="tel-value" id="tel-o2">20.9%</div>
+                </div>
+                <div class="telemetry-item">
+                  <div class="tel-label">Tempo de Permanência</div>
+                  <div class="tel-value" id="tel-timer">00:30</div>
+                </div>
+                <div class="telemetry-item">
+                  <div class="tel-label">Sinal do Rádio</div>
+                  <div class="tel-value" id="tel-radio-status">FORTE</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Controles de ação rápida em caso de eventos -->
+          <div class="control-panel">
+            <div class="phase-info">
+              <span class="phase-num">Fase 5 de 5</span>
+              <h3>Vigilância Contínua</h3>
+              <p>Você é o **Vigia**. Sua função é monitorar o trabalhador de fora, registrar o tempo de trabalho e acionar a equipe em caso de anomalias. <strong>Você nunca deve entrar no tanque!</strong></p>
+            </div>
+            
+            <!-- Evento de Alerta Dinâmico -->
+            <div class="alert-event-box blinking-alert" id="event-box">
+              <div class="event-title">
+                <i data-lucide="bell-ring" class="animate-bounce"></i>
+                <h4 id="event-title-text">Aguardando Início do Monitoramento...</h4>
+              </div>
+              <p id="event-desc-text">Inicie o monitoramento para simular o trabalho. Fique atento a qualquer alarme do detector ou falha de comunicação.</p>
+            </div>
+
+            <!-- Botões de Ação do Vigia -->
+            <div class="action-buttons-grid">
+              <button class="btn btn-action btn-danger-action" id="btn-action-evacuate" disabled>
+                <i data-lucide="log-out"></i> Ordenar Evacuação Imediata
+              </button>
+              <button class="btn btn-action btn-danger-action" id="btn-action-rescue" disabled>
+                <i data-lucide="life-buoy"></i> Acionar Tripé e Resgate Externo
+              </button>
+              <button class="btn btn-action btn-warning-action" id="btn-action-radio" disabled>
+                <i data-lucide="radio-receiver"></i> Utilizar Comunicação de Backup
+              </button>
+              <button class="btn btn-action btn-warning-action" id="btn-action-intervene" disabled>
+                <i data-lucide="shield-x"></i> Barrar Acesso de Terceiros
+              </button>
+              <!-- Botão incorreto e perigoso: Entrar no tanque -->
+              <button class="btn btn-action btn-hazard-action" id="btn-action-enter" disabled>
+                <i data-lucide="flame"></i> Entrar no Tanque para Ajudar
+              </button>
+            </div>
+
+            <button class="btn btn-start" id="btn-start-monitoring">
+              Iniciar Monitoramento <i data-lucide="play"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER COM CONTROLES DE AJUDA -->
+    <footer class="game-footer">
+      <div class="footer-left">
+        <span>🛡️ <strong>Hora da Segurança</strong> — o site mais completo de gestão em SST · <a href="https://www.horadaseguranca.com" target="_blank" rel="noopener" style="color:#fbbf24;text-decoration:none;font-weight:700">www.horadaseguranca.com</a> · Conformidade com a <strong>NR 33</strong></span>
+      </div>
+      <div class="footer-right">
+        <button class="btn-help" id="btn-show-rules"><i data-lucide="book-open"></i> Resumo da NR 33</button>
+        <button class="btn-help" id="btn-reset-game"><i data-lucide="rotate-ccw"></i> Reiniciar Jogo</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODAL DE FEEDBACK PEDAGÓGICO (GAME OVER / SUCESSO) -->
+  <div class="modal-backdrop" id="modal-feedback">
+    <div class="modal-card">
+      <div class="modal-header" id="modal-title-bar">
+        <i data-lucide="alert-triangle" class="modal-icon" id="modal-icon-val"></i>
+        <h3 id="modal-title-text">Título do Modal</h3>
+      </div>
+      <div class="modal-body">
+        <h4 id="modal-summary-text">Resumo pedagógico</h4>
+        <p id="modal-details-text">Explicação regulamentadora sobre a NR 33 correspondente à ação.</p>
+        
+        <div class="modal-stats" id="modal-stats-panel">
+          <div>Pontuação Final: <strong id="modal-score">0</strong></div>
+          <div>Eficiência de Segurança: <strong id="modal-safety">100%</strong></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-modal-close">Fechar</button>
+        <button class="btn btn-primary" id="btn-modal-action">Tentar Novamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE RESUMO DE REGRAS DA NR 33 -->
+  <div class="modal-backdrop" id="modal-rules">
+    <div class="modal-card rules-card">
+      <div class="modal-header">
+        <i data-lucide="book-open" class="modal-icon"></i>
+        <h3>Resumo Regulamentador - NR 33</h3>
+      </div>
+      <div class="modal-body text-left">
+        <h4>1. O que é um Espaço Confinado?</h4>
+        <p>Qualquer área ou ambiente não projetado para ocupação humana contínua, que possua meios limitados de entrada e saída, cuja ventilação existente seja insuficiente para remover contaminantes ou onde possa existir deficiência/enriquecimento de oxigênio.</p>
+        
+        <h4>2. Medição Atmosférica (Amostragem)</h4>
+        <p>É obrigatório realizar testes de gases antes de qualquer entrada. A amostragem deve ser feita **no topo, meio e fundo** do espaço, utilizando equipamentos intrinsicamente seguros, calibrados e testados antes do uso.</p>
+        
+        <h4>3. Regra de Ouro do Vigia</h4>
+        <p>O Vigia **nunca deve entrar no espaço confinado** sob nenhuma hipótese para realizar o salvamento de um acidentado. Ele deve acionar a equipe de resgate e utilizar o tripé/guincho de fora do espaço. Historicamente, a maioria das vítimas em espaços confinados morre tentando salvar colegas.</p>
+        
+        <h4>4. A Permissão de Entrada e Trabalho (PET)</h4>
+        <p>A PET é um documento escrito obrigatório, datado e assinado, contendo as medidas de controle de segurança que devem ser executadas antes e durante o trabalho. É válida apenas para cada entrada.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-close-rules">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="game.js"></script>
+</body>
+</html>
