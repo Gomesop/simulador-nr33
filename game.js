@@ -822,7 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
         probeCtl.samplingProgress += 5;
         ring.classList.add("active");
         fill.style.width = `${Math.min(100, probeCtl.samplingProgress)}%`;
-        if (probeCtl.samplingProgress % 25 === 0) audio.playBeep(1400, 0.04);
+        if (probeCtl.samplingProgress % 25 === 0) { try { audio.playBeep(1400, 0.04); } catch (e) {} }
 
         if (probeCtl.samplingProgress >= 100) {
           // Amostra coletada!
@@ -845,11 +845,12 @@ document.addEventListener("DOMContentLoaded", () => {
           addPoints(50);
 
           const prof = gasProfile(zonePctMap[zone]);
+          try {
+            if (prof.unsafe) audio.playFailure(); else audio.playSuccess();
+          } catch (e) {}
           if (prof.unsafe) {
-            audio.playFailure();
             showToast(`🚨 FUNDO INSEGURO! H₂S ${prof.h2s}ppm, O₂ ${prof.o2}%. Ligue o exaustor para purgar!`, "danger");
           } else {
-            audio.playSuccess();
             showToast(`✅ ${label.toUpperCase()}: atmosfera segura. +50pts`, "success");
           }
         }
