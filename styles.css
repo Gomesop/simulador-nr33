@@ -2443,7 +2443,14 @@ body.industrial-theme {
   color: #94a3b8;
 }
 .safe-object .safe-icon-box i { width: 16px; height: 16px; }
-.safe-object.checked-ok .safe-icon-box { border-color: var(--color-safety-green); color: var(--color-safety-green); }
+.safe-object.checked-ok { opacity: 0.45; }
+.safe-object.checked-ok .safe-icon-box { border-color: var(--color-danger-red); color: var(--color-danger-red); }
+.safe-object.checked-ok::after {
+  content: "✕"; position: absolute; top: -10px; right: -10px;
+  width: 20px; height: 20px; background: var(--color-danger-red); color: #fff;
+  font-size: 0.7rem; font-weight: 900; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
 .cone-shape {
   width: 0;
   height: 0;

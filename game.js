@@ -394,10 +394,13 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.checkMid.className = "check-item";
       elements.checkBottom.className = "check-item";
       
+      state.phase3.isAirCleaning = false;
+      if (state.phase3.cleanTimer) clearTimeout(state.phase3.cleanTimer);
       elements.fanIcon.className = "fan-icon-class";
-      elements.ventilationText.textContent = "Desligado - Risco de asfixia e explosão elevado.";
+      elements.ventilationText.textContent = "Desligado - Risco de asfixia e explosão no fundo.";
       elements.btnToggleFan.textContent = "Ligar Exaustor / Insuflador";
-      
+      elements.btnToggleFan.classList.remove("disabled");
+
       // Resetar camadas
       document.getElementById("layer-top").classList.remove("gas-clear");
       document.getElementById("layer-mid").classList.remove("gas-clear");
@@ -475,13 +478,21 @@ document.addEventListener("DOMContentLoaded", () => {
         const hazard = obj.getAttribute("data-hazard");
         const safeItem = obj.getAttribute("data-safe");
 
-        // Item conforme (isca): feedback pedagógico + pequena penalidade
+        // Item de distração (não é risco): mensagem de erro + pequena penalidade
         if (safeItem) {
-          audio.playBeep(500, 0.12);
-          obj.classList.add("checked-ok");
+          if (obj.classList.contains("checked-ok")) return; // já clicado
+          audio.playFailure();
+          obj.classList.add("checked-ok", "shake");
+          setTimeout(() => obj.classList.remove("shake"), 400);
           state.score = Math.max(0, state.score - 10);
           elements.scoreDisplay.textContent = state.score;
-          showToast("✅ Este item está CONFORME — sem irregularidade aqui. (-10 pts)", "warning");
+          const DISTRACT_MSG = {
+            toolbox: "❌ Errado! Uma caixa de ferramentas NÃO é uma irregularidade da NR 33.",
+            light: "❌ Errado! Uma luminária de área em bom estado não é um risco a registrar.",
+            cone: "❌ Errado! O cone de sinalização está correto — não é uma violação.",
+            tripe: "❌ Errado! O tripé de resgate montado está CONFORME — não é um risco."
+          };
+          showToast((DISTRACT_MSG[safeItem] || "❌ Este item não é uma irregularidade.") + " (-10 pts)", "danger");
           return;
         }
 
@@ -756,6 +767,7 @@ document.addEventListener("DOMContentLoaded", () => {
         state.phase3.probeDepth = pct;
         probeCtl.lastMoveTime = Date.now();
         updateProbePosition(pct);
+        updateGasReadings(pct); // leitura ao vivo conforme a profundidade
       });
 
       window.addEventListener("pointerup", () => {
@@ -781,6 +793,7 @@ document.addEventListener("DOMContentLoaded", () => {
         state.phase3.probeDepth = zoneCenters[level];
         probeCtl.lastMoveTime = Date.now() - 300; // amostragem inicia rápido
         updateProbePosition(state.phase3.probeDepth);
+        updateGasReadings(state.phase3.probeDepth);
       });
     });
 
@@ -818,11 +831,27 @@ document.addEventListener("DOMContentLoaded", () => {
           ring.classList.remove("active");
           fill.style.width = "0%";
           const zonePctMap = { top: 20, mid: 50, bottom: 85 };
-          updateGasReadings(zonePctMap[zone]);
+
+          // Marcar o nível como medido
+          state.phase3.measuredLevels[zone] = true;
           const status = document.getElementById(`status-${zone}`);
           if (status) { status.textContent = "✓ Medido"; status.className = "layer-status done"; }
+          const checkEl = zone === "top" ? elements.checkTop : zone === "mid" ? elements.checkMid : elements.checkBottom;
+          const label = zone === "top" ? "Topo" : zone === "mid" ? "Meio" : "Fundo";
+          if (checkEl) { checkEl.className = "check-item done"; checkEl.innerHTML = `<i data-lucide="check-circle"></i> Teste no ${label}`; }
+
+          // Renderiza a leitura da zona amostrada
+          updateGasReadings(zonePctMap[zone]);
           addPoints(50);
-          showToast(`Amostra do ${zone === "top" ? "TOPO" : zone === "mid" ? "MEIO" : "FUNDO"} coletada! +50pts`, "success");
+
+          const prof = gasProfile(zonePctMap[zone]);
+          if (prof.unsafe) {
+            audio.playFailure();
+            showToast(`🚨 FUNDO INSEGURO! H₂S ${prof.h2s}ppm, O₂ ${prof.o2}%. Ligue o exaustor para purgar!`, "danger");
+          } else {
+            audio.playSuccess();
+            showToast(`✅ ${label.toUpperCase()}: atmosfera segura. +50pts`, "success");
+          }
         }
       } else {
         // Reset do progresso se mover ou sair da zona
@@ -862,146 +891,95 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function updateGasReadings(percentage) {
-    let o2, lel, co, h2s;
-    
-    if (state.phase3.gasesClean) {
-      // Atmosfera limpa após ventilação
-      o2 = 20.9;
-      lel = 0;
-      co = 0;
-      h2s = 0;
-      
-      elements.gasAlertStrip.className = "detector-alert-strip safe";
-      elements.gasAlertStrip.textContent = "ATMOSFERA SEGURA";
-      audio.stopAlarm();
-    } else {
-      // Atmosfera poluída (início)
-      if (percentage > 0 && percentage <= 33) {
-        // TOPO: Acúmulo de gases leves (Metano)
-        o2 = 20.2;
-        lel = 18; // Perigoso (> 10% LEL)
-        co = 2;
-        h2s = 0;
-        state.phase3.measuredLevels.top = true;
-        elements.checkTop.className = "check-item done";
-        elements.checkTop.innerHTML = '<i data-lucide="check-circle"></i> Teste no Topo';
-        const btnTop = document.getElementById("btn-measure-top");
-        if (btnTop) btnTop.classList.add("completed");
-      } else if (percentage <= 66 && percentage > 33) {
-        // MEIO: Gases médios (Monóxido de Carbono)
-        o2 = 19.4; // Perigoso (< 19.5%)
-        lel = 8;
-        co = 45; // Perigoso (> 39 ppm)
-        h2s = 1;
-        state.phase3.measuredLevels.mid = true;
-        elements.checkMid.className = "check-item done";
-        elements.checkMid.innerHTML = '<i data-lucide="check-circle"></i> Teste no Meio';
-        const btnMid = document.getElementById("btn-measure-mid");
-        if (btnMid) btnMid.classList.add("completed");
-      } else if (percentage > 66) {
-        // FUNDO: Gases pesados (Sulfeto de Hidrogênio / Falta O2)
-        o2 = 17.5; // Muito Perigoso
-        lel = 2;
-        co = 18;
-        h2s = 25; // Muito Perigoso (> 8 ppm)
-        state.phase3.measuredLevels.bottom = true;
-        elements.checkBottom.className = "check-item done";
-        elements.checkBottom.innerHTML = '<i data-lucide="check-circle"></i> Teste no Fundo';
-        const btnBottom = document.getElementById("btn-measure-bottom");
-        if (btnBottom) btnBottom.classList.add("completed");
-      } else {
-        // Estado inicial (0) - leituras vazias/limpas de exibição antes do teste
-        o2 = 20.9;
-        lel = 0;
-        co = 0;
-        h2s = 0;
-      }
-      
-      // Aplicar classes de alerta e alarme sonoro
-      const isAlarm = (o2 < 19.5 || lel > 10 || co > 39 || h2s > 8);
-      
-      elements.liveCellO2 = document.getElementById("live-cell-o2");
-      elements.liveCellLel = document.getElementById("live-cell-lel");
-      elements.liveCellCo = document.getElementById("live-cell-co");
-      elements.liveCellH2s = document.getElementById("live-cell-h2s");
-
-      elements.liveCellO2.className = o2 < 19.5 ? "live-cell gas-danger" : "live-cell";
-      elements.liveCellLel.className = lel > 10 ? "live-cell gas-danger" : "live-cell";
-      elements.liveCellCo.className = co > 39 ? "live-cell gas-danger" : "live-cell";
-      elements.liveCellH2s.className = h2s > 8 ? "live-cell gas-danger" : "live-cell";
-
-      if (isAlarm) {
-        elements.gasAlertStrip.className = "detector-alert-strip alarm";
-        elements.gasAlertStrip.textContent = "ALERTA: ATMOSFERA TÓXICA / INFLAMÁVEL! LIGUE A VENTILAÇÃO";
-        audio.startAlarm();
-      } else {
-        elements.gasAlertStrip.className = "detector-alert-strip safe";
-        elements.gasAlertStrip.textContent = "ATMOSFERA SEGURA";
-        audio.stopAlarm();
-      }
+  // Perfil de gases por profundidade: TOPO e MEIO seguros, apenas o FUNDO é inseguro
+  function gasProfile(percentage) {
+    const zone = getZoneForDepth(percentage);
+    // Após a ventilação/purga, todos os níveis ficam seguros
+    if (state.phase3.gasesClean) return { o2: 20.9, lel: 0, co: 0, h2s: 0, unsafe: false, zone };
+    if (zone === "bottom") {
+      // Gases pesados acumulados no fundo (H₂S) + deficiência de O₂
+      return { o2: 17.2, lel: 3, co: 15, h2s: 24, unsafe: true, zone };
     }
-    
-    // Atualizar DOM readings
-    elements.liveO2.textContent = `${o2}%`;
-    elements.liveLel.textContent = `${lel}%`;
-    elements.liveCo.textContent = `${co} ppm`;
-    elements.liveH2s.textContent = `${h2s} ppm`;
-    
+    // Topo e meio: atmosfera segura
+    return { o2: 20.9, lel: 0, co: 0, h2s: 0, unsafe: false, zone };
+  }
+
+  // Renderiza o visor do detector (NÃO marca nível como medido — isso é feito pelo amostrador)
+  function updateGasReadings(percentage) {
+    const p = gasProfile(percentage);
+
+    const cellO2 = document.getElementById("live-cell-o2");
+    const cellLel = document.getElementById("live-cell-lel");
+    const cellCo = document.getElementById("live-cell-co");
+    const cellH2s = document.getElementById("live-cell-h2s");
+    if (cellO2) cellO2.className = p.o2 < 19.5 ? "live-cell gas-danger" : "live-cell";
+    if (cellLel) cellLel.className = p.lel > 10 ? "live-cell gas-danger" : "live-cell";
+    if (cellCo) cellCo.className = p.co > 39 ? "live-cell gas-danger" : "live-cell";
+    if (cellH2s) cellH2s.className = p.h2s > 8 ? "live-cell gas-danger" : "live-cell";
+
+    if (p.unsafe) {
+      elements.gasAlertStrip.className = "detector-alert-strip alarm";
+      elements.gasAlertStrip.textContent = "⚠ ATMOSFERA INSEGURA NO FUNDO! H₂S alto e O₂ baixo. LIGUE O EXAUSTOR para purgar o tanque.";
+      audio.startAlarm();
+    } else {
+      elements.gasAlertStrip.className = "detector-alert-strip safe";
+      if (state.phase3.gasesClean) {
+        elements.gasAlertStrip.textContent = "✅ ATMOSFERA PURGADA E SEGURA EM TODOS OS NÍVEIS";
+      } else if (p.zone) {
+        elements.gasAlertStrip.textContent = "ATMOSFERA SEGURA NESTE NÍVEL";
+      } else {
+        elements.gasAlertStrip.textContent = "AGUARDANDO MEDIÇÃO...";
+      }
+      audio.stopAlarm();
+    }
+
+    elements.liveO2.textContent = `${p.o2}%`;
+    elements.liveLel.textContent = `${p.lel}%`;
+    elements.liveCo.textContent = `${p.co} ppm`;
+    elements.liveH2s.textContent = `${p.h2s} ppm`;
+
     lucide.createIcons();
     checkPhase3Requirements();
   }
 
-  // Lógica de Ligar Ventilação
+  // Lógica de Ligar Ventilação (uma vez ligado, purga o tanque inteiro e permanece limpo)
   elements.btnToggleFan.addEventListener("click", () => {
-    audio.playClick();
-    state.phase3.ventilationOn = !state.phase3.ventilationOn;
-    
-    if (state.phase3.ventilationOn) {
-      elements.fanIcon.classList.add("spinning");
-      elements.btnToggleFan.textContent = "Desligar Exaustor";
-      elements.ventilationText.textContent = "Ligado - Purgando atmosfera tóxica em andamento...";
-      
-      // Iniciar processo de purga de ar (5 segundos)
-      state.phase3.isAirCleaning = true;
-      showToast("Ventilação Ligada! Purgando gases...", "info");
-      
-      state.phase3.cleanTimer = setTimeout(() => {
-        state.phase3.isAirCleaning = false;
-        state.phase3.gasesClean = true;
-        
-        elements.ventilationText.textContent = "Ligado - Atmosfera purgada e limpa com sucesso.";
-        
-        // Mudar cores do visual do tanque para refletir ar limpo
-        document.getElementById("layer-top").classList.add("gas-clear");
-        document.getElementById("layer-mid").classList.add("gas-clear");
-        document.getElementById("layer-bottom").classList.add("gas-clear");
-        
-        // Atualizar leituras de gases imediatamente
-        updateGasReadings(state.phase3.probeDepth);
-        
-        addPoints(100);
-        showToast("Ar Drenado e Limpo! +100pts", "success");
-        checkPhase3Requirements();
-      }, 5000);
-    } else {
-      elements.fanIcon.classList.remove("spinning");
-      elements.btnToggleFan.textContent = "Ligar Exaustor / Insuflador";
-      elements.ventilationText.textContent = "Desligado - Risco de asfixia e explosão elevado.";
-      
-      if (state.phase3.cleanTimer) {
-        clearTimeout(state.phase3.cleanTimer);
-      }
-      state.phase3.isAirCleaning = false;
-      state.phase3.gasesClean = false;
-      
-      // Remover cores limpas
-      document.getElementById("layer-top").classList.remove("gas-clear");
-      document.getElementById("layer-mid").classList.remove("gas-clear");
-      document.getElementById("layer-bottom").classList.remove("gas-clear");
-      
-      updateGasReadings(state.phase3.probeDepth);
+    // Já purgado ou purgando: não faz nada
+    if (state.phase3.gasesClean || state.phase3.isAirCleaning) return;
+
+    // Exige medir o fundo antes (é lá que está o risco)
+    if (!state.phase3.measuredLevels.bottom) {
+      audio.playFailure();
+      showToast("⚠ Meça primeiro o FUNDO do tanque para confirmar a necessidade de ventilação!", "warning");
+      return;
     }
+
+    audio.playClick();
+    state.phase3.ventilationOn = true;
+    state.phase3.isAirCleaning = true;
+    elements.fanIcon.classList.add("spinning");
+    elements.btnToggleFan.textContent = "Purgando atmosfera...";
+    elements.btnToggleFan.classList.add("disabled");
+    elements.ventilationText.textContent = "Ligado — o ar contaminado do fundo está sendo trocado em todo o tanque...";
+    showToast("💨 Exaustor ligado! Purgando o tanque...", "info");
+
+    state.phase3.cleanTimer = setTimeout(() => {
+      state.phase3.isAirCleaning = false;
+      state.phase3.gasesClean = true;
+
+      elements.btnToggleFan.textContent = "✓ Exaustor Ligado (Atmosfera Limpa)";
+      elements.ventilationText.textContent = "Atmosfera purgada e segura em todos os níveis. Mantenha o exaustor ligado durante o trabalho.";
+
+      // Todo o tanque agora está limpo
+      document.getElementById("layer-top").classList.add("gas-clear");
+      document.getElementById("layer-mid").classList.add("gas-clear");
+      document.getElementById("layer-bottom").classList.add("gas-clear");
+
+      updateGasReadings(state.phase3.probeDepth);
+      addPoints(100);
+      showToast("✅ Ar renovado e seguro em todos os níveis! +100pts", "success");
+      checkPhase3Requirements();
+    }, 4000);
   });
 
   function checkPhase3Requirements() {
