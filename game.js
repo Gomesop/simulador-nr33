@@ -797,77 +797,80 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // ---- Amostrador automático: sonda parada dentro de uma zona = coleta ----
+    // ---- Amostrador automático (baseado em relógio: sonda parada na zona por HOLD ms) ----
+    const HOLD_MS = 1400;
+    const zonePctMap = { top: 20, mid: 50, bottom: 85 };
+
+    function completeSample(zone) {
+      const ring = document.getElementById("sampling-ring");
+      const fill = document.getElementById("sampling-fill");
+      if (ring) ring.classList.remove("active");
+      if (fill) fill.style.width = "0%";
+      probeCtl.samplingZone = null;
+      probeCtl.sampleStart = 0;
+
+      state.phase3.measuredLevels[zone] = true;
+      const status = document.getElementById(`status-${zone}`);
+      if (status) { status.textContent = "✓ Medido"; status.className = "layer-status done"; }
+      const checkEl = zone === "top" ? elements.checkTop : zone === "mid" ? elements.checkMid : elements.checkBottom;
+      const label = zone === "top" ? "Topo" : zone === "mid" ? "Meio" : "Fundo";
+      if (checkEl) { checkEl.className = "check-item done"; checkEl.innerHTML = `<i data-lucide="check-circle"></i> Teste no ${label}`; }
+
+      updateGasReadings(zonePctMap[zone]);
+      addPoints(50);
+
+      const prof = gasProfile(zonePctMap[zone]);
+      try { if (prof.unsafe) audio.playFailure(); else audio.playSuccess(); } catch (e) {}
+      if (prof.unsafe) {
+        showToast(`🚨 FUNDO INSEGURO! H₂S ${prof.h2s}ppm, O₂ ${prof.o2}%. Ligue o exaustor para purgar!`, "danger");
+      } else {
+        showToast(`✅ ${label.toUpperCase()}: atmosfera segura. +50pts`, "success");
+      }
+    }
+
+    function cancelSample() {
+      const ring = document.getElementById("sampling-ring");
+      const fill = document.getElementById("sampling-fill");
+      if (ring) ring.classList.remove("active");
+      if (fill) fill.style.width = "0%";
+      if (probeCtl.samplingZone) {
+        const s = document.getElementById(`status-${probeCtl.samplingZone}`);
+        if (s && !state.phase3.measuredLevels[probeCtl.samplingZone]) { s.textContent = "Pendente"; s.className = "layer-status"; }
+      }
+      probeCtl.samplingZone = null;
+      probeCtl.sampleStart = 0;
+    }
+
     if (probeCtl.samplerInterval) clearInterval(probeCtl.samplerInterval);
     probeCtl.samplerInterval = setInterval(() => {
       if (state.currentPhase !== 3) return;
+      const fill = document.getElementById("sampling-fill");
+      const ring = document.getElementById("sampling-ring");
+      if (!ring || !fill) return;
 
       const pct = state.phase3.probeDepth || 0;
       const zone = getZoneForDepth(pct);
-      const ring = document.getElementById("sampling-ring");
-      const fill = document.getElementById("sampling-fill");
-      if (!ring || !fill) return;
+      const stationary = !probeCtl.dragging && (Date.now() - probeCtl.lastMoveTime > 300);
+      const measured = zone && state.phase3.measuredLevels[zone];
 
-      const stationary = !probeCtl.dragging && (Date.now() - probeCtl.lastMoveTime > 350);
-      const zoneAlreadyMeasured = zone && state.phase3.measuredLevels[zone];
-
-      if (zone && !zoneAlreadyMeasured && stationary) {
-        // Progresso de coleta (1.6s no total; tick a cada 80ms)
-        if (probeCtl.samplingZone !== zone) {
-          probeCtl.samplingZone = zone;
-          probeCtl.samplingProgress = 0;
-          const status = document.getElementById(`status-${zone}`);
-          if (status) { status.textContent = "Coletando..."; status.className = "layer-status sampling"; }
-        }
-        probeCtl.samplingProgress += 5;
-        ring.classList.add("active");
-        fill.style.width = `${Math.min(100, probeCtl.samplingProgress)}%`;
-        if (probeCtl.samplingProgress % 25 === 0) { try { audio.playBeep(1400, 0.04); } catch (e) {} }
-
-        if (probeCtl.samplingProgress >= 100) {
-          // Amostra coletada!
-          probeCtl.samplingProgress = 0;
-          probeCtl.samplingZone = null;
-          ring.classList.remove("active");
-          fill.style.width = "0%";
-          const zonePctMap = { top: 20, mid: 50, bottom: 85 };
-
-          // Marcar o nível como medido
-          state.phase3.measuredLevels[zone] = true;
-          const status = document.getElementById(`status-${zone}`);
-          if (status) { status.textContent = "✓ Medido"; status.className = "layer-status done"; }
-          const checkEl = zone === "top" ? elements.checkTop : zone === "mid" ? elements.checkMid : elements.checkBottom;
-          const label = zone === "top" ? "Topo" : zone === "mid" ? "Meio" : "Fundo";
-          if (checkEl) { checkEl.className = "check-item done"; checkEl.innerHTML = `<i data-lucide="check-circle"></i> Teste no ${label}`; }
-
-          // Renderiza a leitura da zona amostrada
-          updateGasReadings(zonePctMap[zone]);
-          addPoints(50);
-
-          const prof = gasProfile(zonePctMap[zone]);
-          try {
-            if (prof.unsafe) audio.playFailure(); else audio.playSuccess();
-          } catch (e) {}
-          if (prof.unsafe) {
-            showToast(`🚨 FUNDO INSEGURO! H₂S ${prof.h2s}ppm, O₂ ${prof.o2}%. Ligue o exaustor para purgar!`, "danger");
-          } else {
-            showToast(`✅ ${label.toUpperCase()}: atmosfera segura. +50pts`, "success");
-          }
-        }
-      } else {
-        // Reset do progresso se mover ou sair da zona
-        if (probeCtl.samplingZone && (!zone || zone !== probeCtl.samplingZone || !stationary)) {
-          const status = document.getElementById(`status-${probeCtl.samplingZone}`);
-          if (status && !state.phase3.measuredLevels[probeCtl.samplingZone]) {
-            status.textContent = "Pendente";
-            status.className = "layer-status";
-          }
-          probeCtl.samplingZone = null;
-        }
-        probeCtl.samplingProgress = 0;
-        ring.classList.remove("active");
-        fill.style.width = "0%";
+      // Fora de zona, já medido ou em movimento → cancela coleta
+      if (!zone || measured || !stationary) {
+        if (probeCtl.samplingZone) cancelSample();
+        return;
       }
+
+      // Entrou numa nova zona → inicia cronômetro de coleta
+      if (probeCtl.samplingZone !== zone) {
+        probeCtl.samplingZone = zone;
+        probeCtl.sampleStart = Date.now();
+        const status = document.getElementById(`status-${zone}`);
+        if (status) { status.textContent = "Coletando..."; status.className = "layer-status sampling"; }
+      }
+
+      const elapsed = Date.now() - probeCtl.sampleStart;
+      ring.classList.add("active");
+      fill.style.width = `${Math.min(100, (elapsed / HOLD_MS) * 100)}%`;
+      if (elapsed >= HOLD_MS) completeSample(zone);
     }, 80);
   }
 
