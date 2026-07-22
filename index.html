@@ -127,9 +127,109 @@
             <p><strong>O site mais completo de gestão em Saúde, Segurança e Meio Ambiente.</strong> Conteúdos, ferramentas e treinamentos para elevar a cultura de segurança da sua empresa.</p>
             <a class="hds-link" href="https://www.horadaseguranca.com" target="_blank" rel="noopener">🌐 Conheça: www.horadaseguranca.com</a>
           </div>
-          <button class="btn btn-start" id="btn-start-game">
-            Iniciar Treinamento <i data-lucide="arrow-right"></i>
-          </button>
+          <div class="intro-buttons">
+            <button class="btn btn-start" id="btn-start-game">
+              📚 Treinamento 1: Liberação de Entrada (Teoria + Prática) <i data-lucide="arrow-right"></i>
+            </button>
+            <button class="btn btn-secondary btn-arcade-cta" id="btn-arcade-open">
+              🎭 Treinamento 2: Simulador de Equipe &amp; Resgate
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA TEORIA: MÓDULO TEÓRICO NR 33 -->
+      <section id="screen-theory" class="viewport-screen">
+        <div class="theory-wrap">
+          <div class="theory-header">
+            <div>
+              <span class="badge-nr">MÓDULO TEÓRICO · NR 33</span>
+              <h2>Fundamentos do Espaço Confinado</h2>
+              <p>Toque em cada cartão para estudar. Depois, responda ao mini-teste para ganhar pontos e liberar a simulação prática.</p>
+            </div>
+            <button class="btn btn-secondary" id="btn-skip-theory">Pular para a Prática ➔</button>
+          </div>
+
+          <div class="theory-grid" id="theory-grid">
+            <!-- Cartões gerados via JavaScript -->
+          </div>
+
+          <div class="theory-quiz">
+            <h3>✅ Teste Rápido de Conhecimento <span class="quiz-progress" id="quiz-progress">0 / 4</span></h3>
+            <div id="quiz-container"><!-- Perguntas geradas via JavaScript --></div>
+          </div>
+
+          <div class="theory-footer">
+            <button class="btn btn-start disabled" id="btn-theory-done">
+              Iniciar Simulação Prática <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA SIM 2: SIMULADOR DE EQUIPE & RESGATE (personagens) -->
+      <section id="screen-team" class="viewport-screen">
+        <div class="team-wrap">
+          <div class="team-top">
+            <div class="team-title">
+              <span class="badge-nr">SIMULADOR 2 · TRABALHO EM EQUIPE</span>
+              <h2 id="team-scene-title">Central de Operações — Espaço Confinado</h2>
+              <p id="team-scene-desc">Cada personagem tem um papel na NR 33. Analise a situação e tome a decisão correta para manter a equipe segura.</p>
+            </div>
+            <div class="team-stats">
+              <div class="team-stat">⭐ <span id="team-score">0</span></div>
+              <div class="team-stat">🎬 <span id="team-round">1</span>/<span id="team-total">6</span></div>
+              <div class="team-stat">🛟 <span id="team-lives">3</span></div>
+            </div>
+          </div>
+
+          <!-- Palco com personagens animados -->
+          <div class="team-stage" id="team-stage">
+            <div class="stage-sky"></div>
+            <div class="stage-ground"></div>
+
+            <!-- Tanque / entrada do espaço confinado -->
+            <div class="stage-tank">
+              <div class="stage-tank-top"></div>
+              <div class="stage-manhole"></div>
+            </div>
+
+            <!-- Personagens (avatares SVG) -->
+            <div class="char char-supervisor" id="char-supervisor" data-role="supervisor" title="Supervisor de Entrada">
+              <div class="char-body"></div>
+              <span class="char-name">Supervisor</span>
+              <span class="char-bubble" id="bubble-supervisor"></span>
+            </div>
+            <div class="char char-vigia" id="char-vigia" data-role="vigia" title="Vigia">
+              <div class="char-body"></div>
+              <span class="char-name">Vigia</span>
+              <span class="char-bubble" id="bubble-vigia"></span>
+            </div>
+            <div class="char char-worker" id="char-worker" data-role="worker" title="Trabalhador Autorizado">
+              <div class="char-body"></div>
+              <span class="char-name">Trabalhador</span>
+              <span class="char-bubble" id="bubble-worker"></span>
+            </div>
+            <div class="char char-rescuer" id="char-rescuer" data-role="rescuer" title="Equipe de Resgate">
+              <div class="char-body"></div>
+              <span class="char-name">Resgate</span>
+              <span class="char-bubble" id="bubble-rescuer"></span>
+            </div>
+
+            <!-- Faixa de alerta de cena -->
+            <div class="stage-alert" id="stage-alert"></div>
+          </div>
+
+          <!-- Painel de decisão -->
+          <div class="team-decision">
+            <div class="decision-question" id="decision-question">Pronto para começar?</div>
+            <div class="decision-options" id="decision-options"></div>
+          </div>
+
+          <div class="team-controls">
+            <button class="btn btn-start" id="btn-team-start">▶ INICIAR SIMULAÇÃO</button>
+            <button class="btn btn-secondary" id="btn-team-exit">⬅ Voltar ao Menu</button>
+          </div>
         </div>
       </section>
 

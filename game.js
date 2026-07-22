@@ -331,11 +331,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (i === phaseNum) step.classList.add("active");
     }
     
-    // Ocultar todas as telas e ativar a correta
-    Object.keys(elements.screens).forEach(key => {
-      elements.screens[key].classList.remove("active");
-    });
-    
+    // Ocultar TODAS as telas (inclui teoria e simulador de equipe) e ativar a correta
+    document.querySelectorAll(".viewport-screen").forEach(s => s.classList.remove("active"));
+    audio.stopAlarm();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
     if (phaseNum === 0) {
       elements.screens.intro.classList.add("active");
     } else if (phaseNum === 1) {
@@ -1372,13 +1372,395 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  // ============================================================
+  // MÓDULO TEÓRICO
+  // ============================================================
+  const THEORY_CARDS = [
+    { icon: "box", titulo: "O que é Espaço Confinado?", texto: "Área não projetada para ocupação humana contínua, com meios limitados de entrada/saída e ventilação insuficiente, onde pode haver deficiência ou excesso de oxigênio e contaminantes. Ex.: tanques, silos, galerias, poços." },
+    { icon: "wind", titulo: "Riscos Atmosféricos", texto: "Os três principais: deficiência de O₂ (<20,9%), atmosfera inflamável (gases/vapores acima de 10% do LEL) e gases tóxicos (H₂S, CO). A medição deve ser feita no topo, meio e fundo antes de qualquer entrada." },
+    { icon: "users", titulo: "Os 3 Papéis Obrigatórios", texto: "Supervisor de Entrada (emite e cancela a PET), Vigia (fica FORA monitorando e aciona o resgate) e Trabalhador Autorizado (executa a tarefa dentro). Cada um tem responsabilidades legais definidas." },
+    { icon: "file-check", titulo: "PET — Permissão de Trabalho", texto: "Documento escrito, datado e assinado, válido para cada entrada. Lista todas as medidas de controle: bloqueio de energia (LOTO), ventilação, EPIs, equipe de resgate montada e monitoramento contínuo." },
+    { icon: "shield-alert", titulo: "Regra de Ouro do Vigia", texto: "O Vigia NUNCA entra no espaço para socorrer. Mais de 60% das mortes em espaços confinados são de socorristas improvisados. Ele deve acionar o resgate e operar o tripé/guincho de FORA." },
+    { icon: "life-buoy", titulo: "Resgate e Emergência", texto: "A empresa deve ter plano e equipe de resgate treinada, com tripé, guincho e cinto tipo paraquedista conectado à linha de vida. O tempo de resposta é vital: a asfixia por H₂S ou falta de O₂ ocorre em minutos." }
+  ];
+
+  const THEORY_QUIZ = [
+    { q: "Qual profissional NUNCA deve entrar no espaço confinado para resgatar um colega?", opts: ["Trabalhador Autorizado", "O Vigia", "Supervisor de Entrada"], correct: 1,
+      exp: "O Vigia permanece sempre fora e aciona a equipe de resgate. Entrar seria uma segunda vítima." },
+    { q: "Em quais alturas a atmosfera deve ser medida antes da entrada?", opts: ["Apenas no fundo", "Somente na entrada", "Topo, meio e fundo"], correct: 2,
+      exp: "Gases se acumulam em níveis diferentes conforme o peso molecular — por isso mede-se nas 3 alturas." },
+    { q: "O que garante legalmente a autorização da entrada?", opts: ["A PET assinada", "Aviso verbal do encarregado", "Placa na parede"], correct: 0,
+      exp: "A Permissão de Entrada e Trabalho (PET) é o documento escrito obrigatório, válido para cada entrada." },
+    { q: "Qual faixa de oxigênio é considerada segura?", opts: ["Abaixo de 17%", "Entre 19,5% e 23%", "Acima de 25%"], correct: 1,
+      exp: "Abaixo de 19,5% há deficiência (risco de asfixia); acima de 23% há enriquecimento (risco de incêndio)." }
+  ];
+
+  const theoryState = { read: new Set(), answered: new Set(), correct: 0 };
+
+  function initTheory() {
+    theoryState.read.clear();
+    theoryState.answered.clear();
+    theoryState.correct = 0;
+
+    // Cartões
+    const grid = document.getElementById("theory-grid");
+    grid.innerHTML = "";
+    THEORY_CARDS.forEach((c, i) => {
+      const card = document.createElement("div");
+      card.className = "theory-card";
+      card.innerHTML = `<div class="tc-icon"><i data-lucide="${c.icon}"></i></div>
+        <h4>${c.titulo}</h4><p>${c.texto}</p>`;
+      card.addEventListener("click", () => {
+        if (!theoryState.read.has(i)) {
+          theoryState.read.add(i);
+          card.classList.add("read");
+          audio.playClick();
+          checkTheoryDone();
+        }
+      });
+      grid.appendChild(card);
+    });
+
+    // Quiz
+    const qc = document.getElementById("quiz-container");
+    qc.innerHTML = "";
+    THEORY_QUIZ.forEach((item, qi) => {
+      const div = document.createElement("div");
+      div.className = "quiz-q";
+      let optsHtml = "";
+      item.opts.forEach((o, oi) => {
+        optsHtml += `<button class="quiz-opt" data-q="${qi}" data-o="${oi}">${o}</button>`;
+      });
+      div.innerHTML = `<div class="q-text">${qi + 1}. ${item.q}</div><div class="quiz-opts">${optsHtml}</div>`;
+      qc.appendChild(div);
+    });
+
+    qc.querySelectorAll(".quiz-opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const qi = +btn.dataset.q, oi = +btn.dataset.o;
+        if (theoryState.answered.has(qi)) return;
+        theoryState.answered.add(qi);
+        const item = THEORY_QUIZ[qi];
+        const optsWrap = btn.parentNode;
+        optsWrap.querySelectorAll(".quiz-opt").forEach(b => b.disabled = true);
+        if (oi === item.correct) {
+          btn.classList.add("correct");
+          theoryState.correct++;
+          addPoints(30);
+          audio.playSuccess();
+          showToast("✅ Correto! +30pts", "success");
+        } else {
+          btn.classList.add("wrong");
+          optsWrap.querySelectorAll(".quiz-opt")[item.correct].classList.add("correct");
+          audio.playFailure();
+          showToast("❌ " + item.exp, "danger");
+        }
+        updateQuizProgress();
+        checkTheoryDone();
+      });
+    });
+    updateQuizProgress();
+    document.getElementById("btn-theory-done").classList.add("disabled");
+    lucide.createIcons();
+  }
+
+  function updateQuizProgress() {
+    const el = document.getElementById("quiz-progress");
+    if (el) el.textContent = `${theoryState.answered.size} / ${THEORY_QUIZ.length}`;
+  }
+
+  function checkTheoryDone() {
+    const allRead = theoryState.read.size === THEORY_CARDS.length;
+    const allAnswered = theoryState.answered.size === THEORY_QUIZ.length;
+    const btn = document.getElementById("btn-theory-done");
+    if (allRead && allAnswered) {
+      btn.classList.remove("disabled");
+      if (!btn.dataset.bonus) {
+        btn.dataset.bonus = "1";
+        addPoints(50);
+        showToast("📚 Teoria concluída! Bônus +50pts", "success");
+      }
+    }
+  }
+
+  function showTheory() {
+    Object.keys(elements.screens).forEach(k => elements.screens[k].classList.remove("active"));
+    document.getElementById("screen-team").classList.remove("active");
+    document.getElementById("screen-arcade") && document.getElementById("screen-arcade").classList.remove("active");
+    document.getElementById("screen-theory").classList.add("active");
+    initTheory();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.getElementById("btn-skip-theory").addEventListener("click", () => { audio.playClick(); goToPhase(1); });
+  document.getElementById("btn-theory-done").addEventListener("click", (e) => {
+    if (e.currentTarget.classList.contains("disabled")) return;
+    audio.playClick();
+    goToPhase(1);
+  });
+
+  // ============================================================
+  // SIMULADOR 2 — EQUIPE & RESGATE (personagens)
+  // ============================================================
+  const TEAM_SCENES = [
+    {
+      title: "Antes da Entrada — Liberação",
+      desc: "O Trabalhador quer entrar rápido para adiantar o serviço. O que a equipe deve fazer primeiro?",
+      alert: "",
+      speaker: "worker", speech: "Vamos logo, é rapidinho!",
+      q: "Qual a decisão correta do Supervisor?",
+      options: [
+        { t: "Liberar a entrada imediatamente para agilizar", ok: false, who: "worker",
+          fb: "Nunca! Sem PET e medições, a entrada é ilegal e fatal." },
+        { t: "Exigir PET assinada, medição de gases e vigia posicionado", ok: true, who: "supervisor",
+          fb: "Correto! Nenhuma entrada ocorre sem PET, atmosfera testada e vigia no posto." }
+      ]
+    },
+    {
+      title: "Teste Atmosférico",
+      desc: "O detector multigás precisa ser usado antes da entrada.",
+      alert: "",
+      speaker: "supervisor", speech: "Meça a atmosfera!",
+      q: "Como o teste deve ser feito?",
+      options: [
+        { t: "Medir só na boca do tanque", ok: false, who: "supervisor",
+          fb: "Insuficiente. Gases pesados como H₂S ficam no fundo e passariam despercebidos." },
+        { t: "Medir no topo, meio e fundo com detector calibrado", ok: true, who: "supervisor",
+          fb: "Exato! A amostragem nas 3 alturas detecta gases de diferentes densidades." }
+      ]
+    },
+    {
+      title: "Trabalhador em Ação",
+      desc: "O Trabalhador entrou com cinto paraquedista conectado. O Vigia assume o posto.",
+      alert: "",
+      speaker: "vigia", speech: "Estou de olho em você!",
+      q: "Qual a função do Vigia neste momento?",
+      options: [
+        { t: "Entrar junto para ajudar no serviço", ok: false, who: "vigia",
+          fb: "Jamais! O Vigia nunca entra — ele monitora de fora o tempo todo." },
+        { t: "Permanecer fora, manter comunicação e vigiar sinais de risco", ok: true, who: "vigia",
+          fb: "Perfeito! Comunicação constante e vigilância contínua salvam vidas." }
+      ]
+    },
+    {
+      title: "🚨 Emergência — Tontura",
+      desc: "O Trabalhador começa a passar mal lá dentro!",
+      alert: "ALARME: Trabalhador com tontura e queda de O₂!",
+      speaker: "worker", speech: "Estou tonto... não me sinto bem!",
+      q: "O Vigia deve:",
+      options: [
+        { t: "Entrar correndo para puxar o colega", ok: false, who: "vigia", fatal: true,
+          fb: "FATAL! O Vigia vira a segunda vítima. Mais de 60% das mortes são de socorristas." },
+        { t: "Acionar resgate e operar o tripé/guincho de fora", ok: true, who: "rescuer",
+          fb: "Correto! Resgate mecânico externo + equipe especializada. Vidas preservadas!" }
+      ]
+    },
+    {
+      title: "Equipe de Resgate em Ação",
+      desc: "A equipe de resgate foi acionada e chega ao local.",
+      alert: "Resgate em andamento!",
+      speaker: "rescuer", speech: "Assumimos! Içando pelo tripé!",
+      q: "Qual o procedimento correto de resgate?",
+      options: [
+        { t: "Improvisar com uma corda amarrada na cintura", ok: false, who: "rescuer",
+          fb: "Não! Resgate exige tripé, guincho e cinto paraquedista certificados." },
+        { t: "Içar pelo tripé/guincho sem ninguém entrar no espaço", ok: true, who: "rescuer",
+          fb: "Isso! Resgate sem entrada (non-entry) é sempre a primeira opção segura." }
+      ]
+    },
+    {
+      title: "Pós-Emergência",
+      desc: "O Trabalhador foi resgatado com vida. E agora?",
+      alert: "",
+      speaker: "supervisor", speech: "Ótimo trabalho, equipe!",
+      q: "Qual a última medida correta?",
+      options: [
+        { t: "Liberar todos e reabrir a área na hora", ok: false, who: "supervisor",
+          fb: "Não. É preciso atendimento médico à vítima e investigar a causa antes de retomar." },
+        { t: "Encaminhar a vítima ao médico e investigar a causa raiz", ok: true, who: "supervisor",
+          fb: "Correto! Cuidado com a vítima e análise do acidente evitam a repetição." }
+      ]
+    }
+  ];
+
+  const teamState = { round: 0, score: 0, lives: 3, active: false };
+
+  function showTeam() {
+    Object.keys(elements.screens).forEach(k => elements.screens[k].classList.remove("active"));
+    document.getElementById("screen-theory").classList.remove("active");
+    document.getElementById("screen-team").classList.add("active");
+    resetTeam();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetTeam() {
+    teamState.round = 0; teamState.score = 0; teamState.lives = 3; teamState.active = false;
+    document.getElementById("team-score").textContent = "0";
+    document.getElementById("team-lives").textContent = "3";
+    document.getElementById("team-round").textContent = "1";
+    document.getElementById("team-total").textContent = TEAM_SCENES.length;
+    document.getElementById("btn-team-start").style.display = "inline-flex";
+    document.getElementById("decision-options").innerHTML = "";
+    document.getElementById("decision-question").textContent = "Pronto para começar?";
+    document.getElementById("team-scene-title").textContent = "Central de Operações — Espaço Confinado";
+    document.getElementById("team-scene-desc").textContent = "Cada personagem tem um papel na NR 33. Analise a situação e tome a decisão correta para manter a equipe segura.";
+    clearCharStates();
+    document.getElementById("stage-alert").classList.remove("show");
+    document.getElementById("char-rescuer").classList.remove("deployed");
+  }
+
+  function clearCharStates() {
+    ["supervisor", "vigia", "worker", "rescuer"].forEach(r => {
+      const c = document.getElementById(`char-${r}`);
+      if (c) c.classList.remove("highlight", "shake", "entering", "walk");
+      const b = document.getElementById(`bubble-${r}`);
+      if (b) b.classList.remove("show");
+    });
+  }
+
+  function speak(role, text) {
+    const b = document.getElementById(`bubble-${role}`);
+    if (!b) return;
+    b.textContent = text;
+    b.classList.add("show");
+    const c = document.getElementById(`char-${role}`);
+    if (c) c.classList.add("highlight");
+  }
+
+  function loadTeamScene() {
+    clearCharStates();
+    const scene = TEAM_SCENES[teamState.round];
+    document.getElementById("team-round").textContent = teamState.round + 1;
+    document.getElementById("team-scene-title").textContent = scene.title;
+    document.getElementById("team-scene-desc").textContent = scene.desc;
+
+    // Alerta de cena
+    const alertEl = document.getElementById("stage-alert");
+    if (scene.alert) { alertEl.textContent = scene.alert; alertEl.classList.add("show"); audio.startAlarm(); }
+    else { alertEl.classList.remove("show"); audio.stopAlarm(); }
+
+    // Deploy da equipe de resgate a partir da cena 5
+    if (teamState.round >= 4) document.getElementById("char-rescuer").classList.add("deployed");
+
+    // Fala do personagem
+    speak(scene.speaker, scene.speech);
+    // Trabalhador treme na emergência
+    if (scene.title.includes("Emergência")) {
+      document.getElementById("char-worker").classList.add("shake");
+    }
+
+    // Pergunta e opções (embaralhadas)
+    document.getElementById("decision-question").textContent = scene.q;
+    const optsWrap = document.getElementById("decision-options");
+    optsWrap.innerHTML = "";
+    const shuffled = [...scene.options].sort(() => Math.random() - 0.5);
+    shuffled.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "decision-opt";
+      btn.innerHTML = `<span>${opt.ok ? "🛡️" : "⚠️"}</span> ${opt.t}`;
+      btn.addEventListener("click", () => handleTeamChoice(opt, btn, optsWrap));
+      optsWrap.appendChild(btn);
+    });
+  }
+
+  function handleTeamChoice(opt, btn, wrap) {
+    wrap.querySelectorAll(".decision-opt").forEach(b => b.disabled = true);
+    audio.stopAlarm();
+
+    if (opt.ok) {
+      btn.classList.add("correct");
+      audio.playSuccess();
+      teamState.score += 100;
+      document.getElementById("team-score").textContent = teamState.score;
+      addPoints(40);
+      speak(opt.who, "✔ Ação correta!");
+      // animação positiva
+      const c = document.getElementById(`char-${opt.who}`);
+      if (c) c.classList.add("walk");
+      showToast("✅ " + opt.fb, "success");
+      setTimeout(nextTeamRound, 2200);
+    } else {
+      btn.classList.add("wrong");
+      audio.playFailure();
+      teamState.lives--;
+      document.getElementById("team-lives").textContent = teamState.lives;
+      // destaca opção certa
+      wrap.querySelectorAll(".decision-opt").forEach(b => {
+        if (b.textContent.trim() !== btn.textContent.trim() && b.querySelector("span").textContent === "🛡️") b.classList.add("correct");
+      });
+      if (opt.fatal) document.getElementById("char-vigia").classList.add("entering");
+      showToast("❌ " + opt.fb, "danger");
+      if (teamState.lives <= 0) {
+        setTimeout(teamGameOver, 2400);
+      } else {
+        setTimeout(() => { loadTeamScene(); }, 2600); // repete a cena
+      }
+    }
+  }
+
+  function nextTeamRound() {
+    teamState.round++;
+    if (teamState.round >= TEAM_SCENES.length) {
+      teamWin();
+    } else {
+      loadTeamScene();
+    }
+  }
+
+  function teamWin() {
+    teamState.active = false;
+    audio.stopAlarm();
+    audio.playVictory && audio.playVictory();
+    audio.playSuccess();
+    showFeedbackModal(
+      "Simulador de Equipe Concluído! 🏆",
+      `Você coordenou a equipe com ${teamState.score} pontos!`,
+      "Você dominou o trabalho em equipe da NR 33: liberação correta com PET, teste atmosférico completo, vigilância contínua e — o mais importante — resgate sem que o Vigia entrasse no espaço. Cada personagem cumpriu seu papel e todos voltaram para casa!",
+      true, true
+    );
+  }
+
+  function teamGameOver() {
+    teamState.active = false;
+    audio.stopAlarm();
+    triggerGameOver(
+      "Simulação Encerrada",
+      "As decisões incorretas comprometeram a segurança da equipe.",
+      "<strong>NR 33:</strong> Cada papel (Supervisor, Vigia, Trabalhador e Resgate) precisa agir com precisão. Reveja a teoria e tente novamente — a segurança em espaço confinado não admite improviso."
+    );
+  }
+
+  document.getElementById("btn-team-start").addEventListener("click", () => {
+    audio.playClick();
+    teamState.active = true;
+    document.getElementById("btn-team-start").style.display = "none";
+    // animação de entrada dos personagens
+    ["supervisor", "vigia", "worker"].forEach((r, i) => {
+      const c = document.getElementById(`char-${r}`);
+      setTimeout(() => c && c.classList.add("walk"), i * 200);
+      setTimeout(() => c && c.classList.remove("walk"), i * 200 + 1000);
+    });
+    loadTeamScene();
+  });
+
+  document.getElementById("btn-team-exit").addEventListener("click", () => {
+    audio.playClick();
+    audio.stopAlarm();
+    goToPhase(0);
+  });
+
+  document.getElementById("btn-arcade-open").addEventListener("click", () => {
+    audio.playClick();
+    showTeam();
+  });
+
   // --- L. INICIALIZAÇÃO INICIAL ---
   goToPhase(0);
 
-  // Iniciar jogo no botão
+  // Iniciar jogo no botão (agora começa pela teoria)
   elements.btnStartGame.addEventListener("click", () => {
     audio.playClick();
-    goToPhase(1);
+    showTheory();
   });
 
   // Função utilitária de toast de feedback rápido
